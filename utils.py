@@ -78,6 +78,38 @@ def trajectory_motion_modes(all_trajs, obs_len, n_units=120, smooth_size=3, rand
     motion_modes = kmeans_(clustering_input, n_units)
     return motion_modes
 
+def get_motion_modes_file(dataset, save_folder, obs_len, pred_len, n_clusters, dataset_path, dataset_name, smooth_size, random_rotation, traj_seg=False):
+    trajs_list = []
+    index1 = [0, 1, 2, 3, 4, 5]  # make full use of training data
+    traj_scenarios = dataset.scenario_list
+    i = 0
+    while i < len(traj_scenarios)-obs_len-pred_len:
+        curr_traj = traj_scenarios[i:i+(obs_len+pred_len)]  # T 2
+        if traj_seg:
+            for j in index1:
+                seq = curr_traj[j:j + pred_len + 2]
+                pre_seq = np.repeat(seq[0:1], obs_len + pred_len - seq.shape[0], axis=0)
+                seq = np.concatenate((pre_seq, seq), axis=0)
+                trajs_list.append(seq)
+        trajs_list.append(curr_traj)
+        i+=1
+    
+    all_trajs = np.stack(trajs_list, axis=0) # [B T 2]
+    all_trajs = translation(all_trajs, obs_len-1)
+    all_trajs, _ = rotation(all_trajs, 0)
+    motion_modes = trajectory_motion_modes(all_trajs, obs_len, n_units=n_clusters, 
+                                      smooth_size=smooth_size, random_rotation=random_rotation)
+    
+    if not os.path.exists(dataset_path): 
+        os.makedirs(dataset_path)
+    save_path_file = os.path.join(save_folder,dataset_name + '_motion_modes.pkl')
+    print("saving motion modes to: %s" %save_path_file)
+    f = open(save_path_file, 'wb')
+    pickle.dump(motion_modes, f)
+    f.close()
+    print('Finished')
+
+    return motion_modes
 
 def get_motion_modes(dataset, obs_len, pred_len, n_clusters, dataset_path, dataset_name, smooth_size, random_rotation, traj_seg=False):
     trajs_list = []

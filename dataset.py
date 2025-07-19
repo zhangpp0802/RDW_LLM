@@ -108,3 +108,37 @@ class TrajectoryDataset(data.Dataset):
 
     def __getitem__(self, item):
         return self.scenario_list[item]
+    
+class PiecewiseDataset(data.Dataset):
+
+    def __init__(self, dataset_path, dataset_name, dataset_type, translation=False, rotation=False, scaling=False, obs_len=8,
+                max_neis_num=50, dist_threshold=2, smooth=False):
+        
+        self.translation = translation
+        self.rotation = rotation
+        self.obs_len = obs_len
+        self.scaling = scaling
+        self.max_neis_num = max_neis_num
+        self.dist_threshold = dist_threshold
+        self.smooth = smooth
+        self.window_size = 3
+
+        f = open(dataset_path, 'rb+')
+        object = pickle.load(f)
+        f.close()
+        df = pd.DataFrame(object)
+        p1 = df["p1"]
+        ped_temp = p1[0]['head']['pos'][:,:2]
+        self.scenario_list = ped_temp
+
+
+    def coll_fn(self, scenario_list):
+
+        return self.scenario_list
+        
+
+    def __len__(self):
+        return  len(self.scenario_list)
+
+    def __getitem__(self, item):
+        return self.scenario_list[item]
